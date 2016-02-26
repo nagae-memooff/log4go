@@ -90,6 +90,30 @@ func (l level) String() string {
 	return levelStrings[int(l)]
 }
 
+func Level(lvl_str string) (lvl level) {
+	switch lvl_str {
+	case "finest":
+		lvl = FINEST
+	case "fine":
+		lvl = FINE
+	case "debug":
+		lvl = DEBUG
+	case "trace":
+		lvl = TRACE
+	case "info":
+		lvl = INFO
+	case "warning":
+		lvl = WARNING
+	case "error":
+		lvl = ERROR
+	case "critical":
+		lvl = CRITICAL
+	default:
+		lvl = INFO
+	}
+	return
+}
+
 /****** Variables ******/
 var (
 	// LogBufferLength specifies how many log messages a particular log4go
