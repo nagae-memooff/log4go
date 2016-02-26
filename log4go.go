@@ -265,11 +265,12 @@ func (log Logger) intLogc(lvl Level, closure func() string) {
 		return
 	}
 
-	// Determine caller func
-	pc, _, lineno, ok := runtime.Caller(2)
 	src := ""
-	if ok {
-		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
+	if lvl < INFO {
+		pc, _, lineno, ok := runtime.Caller(2)
+		if ok {
+			src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
+		}
 	}
 
 	// Make the log record
