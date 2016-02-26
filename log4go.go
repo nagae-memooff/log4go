@@ -47,11 +47,11 @@ package log4go
 
 import (
 	"errors"
-	"os"
 	"fmt"
-	"time"
-	"strings"
+	"os"
 	"runtime"
+	"strings"
+	"time"
 )
 
 // Version information
@@ -65,10 +65,10 @@ const (
 /****** Constants ******/
 
 // These are the integer logging levels used by the logger
-type level int
+type Level int
 
 const (
-	FINEST level = iota
+	FINEST Level = iota
 	FINE
 	DEBUG
 	TRACE
@@ -78,19 +78,19 @@ const (
 	CRITICAL
 )
 
-// Logging level strings
+// Logging Level strings
 var (
 	levelStrings = [...]string{"FNST", "FINE", "DEBG", "TRAC", "INFO", "WARN", "EROR", "CRIT"}
 )
 
-func (l level) String() string {
+func (l Level) String() string {
 	if l < 0 || int(l) > len(levelStrings) {
 		return "UNKNOWN"
 	}
 	return levelStrings[int(l)]
 }
 
-func Level(lvl_str string) (lvl level) {
+func LevelByString(lvl_str string) (lvl Level) {
 	switch lvl_str {
 	case "finest":
 		lvl = FINEST
@@ -125,7 +125,7 @@ var (
 
 // A LogRecord contains all of the pertinent information for each message
 type LogRecord struct {
-	Level   level     // The log level
+	Level   Level     // The log level
 	Created time.Time // The time at which the log message was created (nanoseconds)
 	Source  string    // The message source
 	Message string    // The log message
@@ -148,7 +148,7 @@ type LogWriter interface {
 // A Filter represents the log level below which no log records are written to
 // the associated LogWriter.
 type Filter struct {
-	Level level
+	Level Level
 	LogWriter
 }
 
@@ -168,7 +168,7 @@ func NewLogger() Logger {
 // or above lvl to standard output.
 //
 // DEPRECATED: use NewDefaultLogger instead.
-func NewConsoleLogger(lvl level) Logger {
+func NewConsoleLogger(lvl Level) Logger {
 	os.Stderr.WriteString("warning: use of deprecated NewConsoleLogger\n")
 	return Logger{
 		"stdout": &Filter{lvl, NewConsoleLogWriter()},
@@ -177,7 +177,7 @@ func NewConsoleLogger(lvl level) Logger {
 
 // Create a new logger with a "stdout" filter configured to send log messages at
 // or above lvl to standard output.
-func NewDefaultLogger(lvl level) Logger {
+func NewDefaultLogger(lvl Level) Logger {
 	return Logger{
 		"stdout": &Filter{lvl, NewConsoleLogWriter()},
 	}
@@ -198,14 +198,14 @@ func (log Logger) Close() {
 // Add a new LogWriter to the Logger which will only log messages at lvl or
 // higher.  This function should not be called from multiple goroutines.
 // Returns the logger for chaining.
-func (log Logger) AddFilter(name string, lvl level, writer LogWriter) Logger {
+func (log Logger) AddFilter(name string, lvl Level, writer LogWriter) Logger {
 	log[name] = &Filter{lvl, writer}
 	return log
 }
 
 /******* Logging *******/
 // Send a formatted log message internally
-func (log Logger) intLogf(lvl level, format string, args ...interface{}) {
+func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
 	skip := true
 
 	// Determine if any logging will be done
@@ -249,7 +249,7 @@ func (log Logger) intLogf(lvl level, format string, args ...interface{}) {
 }
 
 // Send a closure log message internally
-func (log Logger) intLogc(lvl level, closure func() string) {
+func (log Logger) intLogc(lvl Level, closure func() string) {
 	skip := true
 
 	// Determine if any logging will be done
@@ -287,8 +287,8 @@ func (log Logger) intLogc(lvl level, closure func() string) {
 	}
 }
 
-// Send a log message with manual level, source, and message.
-func (log Logger) Log(lvl level, source, message string) {
+// Send a log message with manual Level, source, and message.
+func (log Logger) Log(lvl Level, source, message string) {
 	skip := true
 
 	// Determine if any logging will be done
@@ -321,14 +321,46 @@ func (log Logger) Log(lvl level, source, message string) {
 
 // Logf logs a formatted log message at the given log level, using the caller as
 // its source.
-func (log Logger) Logf(lvl level, format string, args ...interface{}) {
+func (log Logger) Logf(lvl Level, format string, args ...interface{}) {
 	log.intLogf(lvl, format, args...)
 }
 
 // Logc logs a string returned by the closure at the given log level, using the caller as
 // its source.  If no log message would be written, the closure is never called.
-func (log Logger) Logc(lvl level, closure func() string) {
+func (log Logger) Logc(lvl Level, closure func() string) {
 	log.intLogc(lvl, closure)
+}
+
+func (log Logger) Finestc(closure func() string) {
+	log.intLogc(FINEST, closure)
+}
+
+func (log Logger) Finec(closure func() string) {
+	log.intLogc(FINE, closure)
+}
+
+func (log Logger) Debugc(closure func() string) {
+	log.intLogc(DEBUG, closure)
+}
+
+func (log Logger) Tracec(closure func() string) {
+	log.intLogc(TRACE, closure)
+}
+
+func (log Logger) Infoc(closure func() string) {
+	log.intLogc(INFO, closure)
+}
+
+func (log Logger) Warningc(closure func() string) {
+	log.intLogc(WARNING, closure)
+}
+
+func (log Logger) Errorc(closure func() string) {
+	log.intLogc(ERROR, closure)
+}
+
+func (log Logger) Criticalc(closure func() string) {
+	log.intLogc(CRITICAL, closure)
 }
 
 // Finest logs a message at the finest log level.
@@ -350,7 +382,7 @@ func (log Logger) Finest(arg0 interface{}, args ...interface{}) {
 	}
 }
 
-// Fine logs a message at the fine log level.
+// Fine logs a message at the fine log Level.
 // See Debug for an explanation of the arguments.
 func (log Logger) Fine(arg0 interface{}, args ...interface{}) {
 	const (
