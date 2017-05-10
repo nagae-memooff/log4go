@@ -4,7 +4,11 @@ package log4go
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -36,7 +40,8 @@ type FileLogWriter struct {
 	daily_opendate int
 
 	// Keep old logfiles (.001, .002, etc)
-	rotate bool
+	rotate   bool
+	keep_old int
 }
 
 // This is the FileLogWriter's output method
@@ -136,21 +141,38 @@ func (w *FileLogWriter) intRotate() error {
 		_, err := os.Lstat(w.filename)
 		if err == nil { // file exists
 			// Find the next available number
-			num := 1
-			fname := ""
-			for ; err == nil && num <= 999; num++ {
-				fname = w.filename + fmt.Sprintf(".%03d", num)
-				_, err = os.Lstat(fname)
-			}
-			// return error if the last file checked still existed
-			if err == nil {
-				return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
-			}
+			// num := 1
+			// fname := ""
+			// for ; err == nil && num <= 999; num++ {
+			// 	fname = w.filename + fmt.Sprintf(".%03d", num)
+			// 	_, err = os.Lstat(fname)
+			// }
+			// // return error if the last file checked still existed
+			// if err == nil {
+			// 	return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
+			// }
+
+			fname := w.filename + time.Now().Format(".20060102-15:04:05.oldlog")
 
 			// Rename the file to its newfound home
 			err = os.Rename(w.filename, fname)
 			if err != nil {
 				return fmt.Errorf("Rotate: %s\n", err)
+			}
+		}
+
+		// TODO 通过w.filename拿到所在目录，去那里查找
+		if w.keep_old > 0 {
+			log_dir := filepath.Dir(w.filename)
+
+			oldlogs, err := ListLogs(log_dir, ".oldlog")
+			if err == nil {
+				overed := len(oldlogs) - w.keep_old
+				if overed > 0 {
+					for _, _log := range oldlogs[0:overed] {
+						remove_old_log(_log)
+					}
+				}
 			}
 		}
 	}
@@ -227,6 +249,12 @@ func (w *FileLogWriter) SetRotate(rotate bool) *FileLogWriter {
 	return w
 }
 
+func (w *FileLogWriter) SetRotateKeep(keep int) *FileLogWriter {
+	w.keep_old = keep
+
+	return w
+}
+
 // NewXMLLogWriter is a utility method for creating a FileLogWriter set up to
 // output XML record log messages instead of line-based ones.
 func NewXMLLogWriter(fname string, rotate bool) *FileLogWriter {
@@ -236,4 +264,35 @@ func NewXMLLogWriter(fname string, rotate bool) *FileLogWriter {
 		<source>%S</source>
 		<message>%M</message>
 	</record>`).SetHeadFoot("<log created=\"%D %T\">", "</log>")
+}
+
+func ListLogs(dirPth string, suffix string) (files []string, err error) {
+	dir, err := ioutil.ReadDir(dirPth)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(dir, func(i, j int) bool {
+		if dir[i].ModTime().Before(dir[j].ModTime()) {
+			return true
+		} else {
+			return false
+		}
+	})
+
+	files = make([]string, 0, len(dir))
+
+	for _, fi := range dir {
+		if fi.IsDir() || !strings.HasSuffix(fi.Name(), suffix) {
+			continue
+		}
+
+		files = append(files, fi.Name())
+	}
+
+	return
+}
+
+func remove_old_log(log string) {
+	os.Remove(log)
 }
