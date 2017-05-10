@@ -161,7 +161,6 @@ func (w *FileLogWriter) intRotate() error {
 			}
 		}
 
-		// TODO 通过w.filename拿到所在目录，去那里查找
 		if w.keep_old > 0 {
 			log_dir := filepath.Dir(w.filename)
 
