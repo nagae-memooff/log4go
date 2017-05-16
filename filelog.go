@@ -72,7 +72,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 	}
 
 	// open the file for the first time
-	if err := w.intRotate(); err != nil {
+	if err := w.open_first_time(); err != nil {
 		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 		return nil
 	}
@@ -129,6 +129,34 @@ func (w *FileLogWriter) Rotate() {
 }
 
 // If this is called in a threaded context, it MUST be synchronized
+func (w *FileLogWriter) open_first_time() error {
+	// Close any log file that may be open
+	if w.file != nil {
+		fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
+		w.file.Close()
+	}
+
+	// Open the log file
+	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	if err != nil {
+		return err
+	}
+	w.file = fd
+
+	now := time.Now()
+	fmt.Fprint(w.file, FormatLogRecord(w.header, &LogRecord{Created: now}))
+
+	// Set the daily open date to the current date
+	w.daily_opendate = now.Day()
+
+	// initialize rotation values
+	w.maxlines_curlines = 0
+	w.maxsize_cursize = 0
+
+	return nil
+}
+
+// If this is called in a threaded context, it MUST be synchronized
 func (w *FileLogWriter) intRotate() error {
 	// Close any log file that may be open
 	if w.file != nil {
@@ -159,20 +187,22 @@ func (w *FileLogWriter) intRotate() error {
 			if err != nil {
 				return fmt.Errorf("Rotate: %s\n", err)
 			}
-		}
 
-		if w.keep_old > 0 {
-			log_dir := filepath.Dir(w.filename)
+			if w.keep_old > 0 {
+				log_dir := filepath.Dir(w.filename)
 
-			oldlogs, err := ListLogs(log_dir, ".oldlog")
-			if err == nil {
-				overed := len(oldlogs) - w.keep_old
-				if overed > 0 {
-					for _, _log := range oldlogs[0:overed] {
-						remove_old_log(_log)
+				oldlogs, err := ListLogs(log_dir, ".oldlog")
+				fmt.Printf("oldlogs: '%v', err: %s\n", oldlogs, err)
+				if err == nil {
+					overed := len(oldlogs) - w.keep_old
+					if overed > 0 {
+						for _, _log := range oldlogs[0:overed] {
+							remove_old_log(_log)
+						}
 					}
 				}
 			}
+
 		}
 	}
 
