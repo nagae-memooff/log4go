@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -42,6 +43,8 @@ type FileLogWriter struct {
 	// Keep old logfiles (.001, .002, etc)
 	rotate   bool
 	keep_old int
+
+	close_wg sync.WaitGroup
 }
 
 // This is the FileLogWriter's output method
@@ -51,6 +54,7 @@ func (w *FileLogWriter) LogWrite(rec *LogRecord) {
 
 func (w *FileLogWriter) Close() {
 	close(w.rec)
+	w.close_wg.Wait()
 }
 
 // NewFileLogWriter creates a new LogWriter which writes to the given file and
@@ -77,12 +81,15 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		return nil
 	}
 
+	w.close_wg.Add(1)
 	go func() {
 		defer func() {
 			if w.file != nil {
 				fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
 				w.file.Close()
 			}
+
+			w.close_wg.Done()
 		}()
 
 		for {

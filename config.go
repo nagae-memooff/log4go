@@ -131,7 +131,7 @@ func (log Logger) LoadConfiguration(filename string) {
 	}
 }
 
-func xmlToConsoleLogWriter(filename string, props []xmlProperty, enabled bool) (ConsoleLogWriter, bool) {
+func xmlToConsoleLogWriter(filename string, props []xmlProperty, enabled bool) (c ConsoleLogWriter, b bool) {
 	// Parse properties
 	for _, prop := range props {
 		switch prop.Name {
@@ -142,7 +142,7 @@ func xmlToConsoleLogWriter(filename string, props []xmlProperty, enabled bool) (
 
 	// If it's disabled, we're just checking syntax
 	if !enabled {
-		return nil, true
+		return c, true
 	}
 
 	return NewConsoleLogWriter(), true
