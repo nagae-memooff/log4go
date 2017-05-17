@@ -45,16 +45,24 @@ type FileLogWriter struct {
 	keep_old int
 
 	close_wg sync.WaitGroup
+	closing  bool
 }
 
 // This is the FileLogWriter's output method
 func (w *FileLogWriter) LogWrite(rec *LogRecord) {
+	if w.closing {
+		return
+	}
+
+	w.close_wg.Add(1)
 	w.rec <- rec
 }
 
 func (w *FileLogWriter) Close() {
-	close(w.rec)
+	w.closing = true
+
 	w.close_wg.Wait()
+	close(w.rec)
 }
 
 // NewFileLogWriter creates a new LogWriter which writes to the given file and
@@ -81,7 +89,6 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		return nil
 	}
 
-	w.close_wg.Add(1)
 	go func() {
 		defer func() {
 			if w.file != nil {
@@ -89,7 +96,6 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 				w.file.Close()
 			}
 
-			w.close_wg.Done()
 		}()
 
 		for {
@@ -123,6 +129,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 				// Update the counts
 				w.maxlines_curlines++
 				w.maxsize_cursize += n
+				w.close_wg.Done()
 			}
 		}
 	}()
