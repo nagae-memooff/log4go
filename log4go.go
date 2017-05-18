@@ -118,7 +118,7 @@ func LevelByString(lvl_str string) (lvl Level) {
 var (
 	// LogBufferLength specifies how many log messages a particular log4go
 	// logger can buffer at a time before writing them.
-	LogBufferLength = 64
+	LogBufferLength = 1024
 )
 
 /****** LogRecord ******/

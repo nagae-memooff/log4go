@@ -57,7 +57,6 @@ func (w *ConsoleLogWriter) LogWrite(rec *LogRecord) {
 // send log messages to this logger after a Close have undefined behavior.
 func (w *ConsoleLogWriter) Close() {
 	w.closing = true
-
 	w.close_wg.Wait()
 	close(w.rc)
 }
