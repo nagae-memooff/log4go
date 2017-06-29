@@ -151,7 +151,7 @@ func (w *FileLogWriter) open_first_time() error {
 	}
 
 	// Open the log file
-	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (w *FileLogWriter) intRotate() error {
 	}
 
 	// Open the log file
-	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	fd, err := os.OpenFile(w.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
