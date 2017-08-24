@@ -221,11 +221,9 @@ func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
 
 	// Determine caller func
 	src := ""
-	if log["stdout"].Level < INFO {
-		pc, _, lineno, ok := runtime.Caller(2)
-		if ok {
-			src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
-		}
+	pc, _, lineno, ok := runtime.Caller(2)
+	if ok {
+		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
 	}
 
 	msg := format
@@ -266,11 +264,9 @@ func (log Logger) intLogc(lvl Level, closure func() string) {
 	}
 
 	src := ""
-	if log["stdout"].Level < INFO {
-		pc, _, lineno, ok := runtime.Caller(2)
-		if ok {
-			src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
-		}
+	pc, _, lineno, ok := runtime.Caller(2)
+	if ok {
+		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
 	}
 
 	// Make the log record
