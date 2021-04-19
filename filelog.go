@@ -129,6 +129,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 				// Update the counts
 				w.maxlines_curlines++
 				w.maxsize_cursize += n
+				// fmt.Printf("cursize: %d\n", w.maxsize_cursize)
 				w.close_wg.Done()
 			}
 		}
@@ -165,7 +166,13 @@ func (w *FileLogWriter) open_first_time() error {
 
 	// initialize rotation values
 	w.maxlines_curlines = 0
-	w.maxsize_cursize = 0
+
+	lstat, err := os.Lstat(w.filename)
+	if err == nil {
+		w.maxsize_cursize = int(lstat.Size())
+	} else {
+		w.maxsize_cursize = 0
+	}
 
 	return nil
 }
@@ -206,7 +213,7 @@ func (w *FileLogWriter) intRotate() error {
 				log_dir := filepath.Dir(w.filename)
 
 				oldlogs, err := ListLogs(log_dir, ".oldlog")
-				fmt.Printf("oldlogs: '%v', err: %s\n", oldlogs, err)
+				// fmt.Printf("oldlogs: '%v', err: %s\n", oldlogs, err)
 				if err == nil {
 					overed := len(oldlogs) - w.keep_old
 					if overed > 0 {
